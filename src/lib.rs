@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 extern crate reqwest;
 extern crate mockito;
 #[macro_use] extern crate serde_derive;
@@ -118,30 +120,31 @@ pub struct CardSetResponse {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardSetApi {
-	cached_set_response: Option<CardSetResponse>,
+	cached_sets: HashMap<String, CardSetResponse>,
 }
 
 impl CardSetApi {
 	pub fn new() -> Self {
 		CardSetApi {
-			cached_set_response: None
+			cached_sets: HashMap::new(),
 		}
 	}
 
 	pub fn get_set(&mut self, set_id: &str) -> Result<CardSetResponse, CardSetRequestError> {
-		if let Some(cached_set_response) = self.cached_set_response.clone() {
-			println!("Found cached set response");
-
-			self.cached_set_response = Some(cached_set_response.clone());
-			return Ok(cached_set_response);
+		if let Some(cached_set) = self.cached_sets.get(set_id.into()) {
+			println!("Found cached set response for set {}", cached_set.card_set.set_info.set_id);
+			return Ok(cached_set.clone());
 		}
 
-		println!("Fetching set from server...");
+		println!("Fetching set_id {} from server...", set_id);
 		self.get_set_request(set_id)
 			.and_then(|card_set_request| reqwest::get(card_set_request.url()).map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
 			.and_then(|mut response| response.json().map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
 			.and_then(|card_set_response: CardSetResponse| {
-				self.cached_set_response = Some(card_set_response.clone());
+				self.cached_sets.insert(
+					set_id.into(),
+					card_set_response.clone()
+				);
 				Ok(card_set_response)
 			})
 	}
