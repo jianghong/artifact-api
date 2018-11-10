@@ -18,6 +18,7 @@ pub enum CardSetRequestError {
 }
 
 impl CardSetRequestError {
+	#[allow(dead_code)]
 	fn to_string(self) -> String {
 		match self {
 			CardSetRequestError::InvalidSetID{kind} => kind.to_string(),
@@ -75,6 +76,18 @@ mod tests {
 	      .create();		
 		let card_set_request = get_card_set_request("01").unwrap();
 		assert_eq!(card_set_request, expected_body);
+	}
+
+	#[test]
+	fn get_card_set_request_fail() {
+	    let _m = mock("GET", "/01")
+	      .with_status(201)
+	      .with_header("content-type", "text/plain")
+	      .with_header("x-api-key", "1234")
+	      .with_body("{}")
+	      .create();
+		let err = get_card_set_request("01").unwrap_err();
+		assert_eq!(err.to_string(), "missing field `cdn_root` at line 1 column 2");
 	}
 
     #[test]
