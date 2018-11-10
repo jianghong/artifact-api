@@ -11,6 +11,89 @@ const CARD_SET_REQUEST_URL: &str =  "https://playartifact.com/cardset/";
 pub const BASE_SET_ID: &str = "00";
 pub const CALL_TO_ARMS_SET_ID: &str = "01";
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CardSetRequest {
+	cdn_root: String,
+	url: String,
+	expire_time: i32,
+}
+
+impl CardSetRequest {
+	pub fn url(self) -> String {
+		format!("{}{}", self.cdn_root, self.url)
+	}
+}
+
+impl PartialEq for CardSetRequest {
+    fn eq(&self, other: &CardSetRequest) -> bool {
+        self.cdn_root == other.cdn_root &&
+        self.url == other.url &&
+        self.expire_time == other.expire_time
+    }	
+}
+
+#[derive(Debug)]
+pub enum CardSetRequestError {
+	InvalidSetID { kind: reqwest::UrlError },
+	ReqwestError { kind: reqwest::Error },
+}
+
+impl CardSetRequestError {
+	#[allow(dead_code)]
+	fn to_string(self) -> String {
+		match self {
+			CardSetRequestError::InvalidSetID{kind} => kind.to_string(),
+			CardSetRequestError::ReqwestError{kind} => kind.to_string(),
+		}
+	}
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TranslationSet {
+	english: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ImageSet {
+	default: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SetInfo {
+	set_id: i32,
+	pack_item_def: i32,
+	name: TranslationSet,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CardReference {
+	card_id: i32,
+	ref_type: String,
+	count: i32,	
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CardList {
+	card_id: i32,
+	base_card_id: i32,
+	card_type: String,
+	card_name: TranslationSet,
+	card_text: TranslationSet,
+	mini_image: ImageSet,
+	large_image: ImageSet,
+	ingame_image: ImageSet,
+	hit_points: i32,
+	references: Vec<CardReference>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CardSet {
+	version: i32,
+	set_info: SetInfo,
+	card_list: Vec<CardList>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CardSetApi {}
 
 impl CardSetApi {
@@ -32,43 +115,6 @@ impl CardSetApi {
 		reqwest::Url::parse(CARD_SET_REQUEST_URL).map_err(|e| CardSetRequestError::InvalidSetID{kind: e})
 			.and_then(|base_url| base_url.join(set_id).map_err(|e| CardSetRequestError::InvalidSetID{kind: e}))
 	}
-}
-
-#[derive(Debug)]
-pub enum CardSetRequestError {
-	InvalidSetID { kind: reqwest::UrlError },
-	ReqwestError { kind: reqwest::Error },
-}
-
-impl CardSetRequestError {
-	#[allow(dead_code)]
-	fn to_string(self) -> String {
-		match self {
-			CardSetRequestError::InvalidSetID{kind} => kind.to_string(),
-			CardSetRequestError::ReqwestError{kind} => kind.to_string(),
-		}
-	}
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CardSetRequest {
-	cdn_root: String,
-	url: String,
-	expire_time: i32,
-}
-
-impl CardSetRequest {
-	pub fn url(self) -> String {
-		format!("{}{}", self.cdn_root, self.url)
-	}
-}
-
-impl PartialEq for CardSetRequest {
-    fn eq(&self, other: &CardSetRequest) -> bool {
-        self.cdn_root == other.cdn_root &&
-        self.url == other.url &&
-        self.expire_time == other.expire_time
-    }	
 }
 
 #[cfg(test)]
