@@ -34,6 +34,12 @@ pub struct CardSetRequest {
 	expire_time: i32,
 }
 
+impl CardSetRequest {
+	pub fn url(self) -> String {
+		format!("{}{}", self.cdn_root, self.url)
+	}
+}
+
 impl PartialEq for CardSetRequest {
     fn eq(&self, other: &CardSetRequest) -> bool {
         self.cdn_root == other.cdn_root &&
@@ -59,7 +65,6 @@ mod tests {
 	extern crate serde_json;
 	use tests::mockito::mock;
 	use {CardSetRequest, parse_url, get_card_set_request};
-
 
 	#[test]
 	fn get_card_set_request_success() {
@@ -88,6 +93,17 @@ mod tests {
 	      .create();
 		let err = get_card_set_request("01").unwrap_err();
 		assert_eq!(err.to_string(), "missing field `cdn_root` at line 1 column 2");
+	}
+
+	#[test]
+	fn card_set_request_url() {
+		let card_set_request = CardSetRequest{
+			cdn_root: "https://cdnroot.com".into(),
+			url: "/path/to/set".into(),
+			expire_time: 123,
+		};
+
+		assert_eq!(card_set_request.url(), "https://cdnroot.com/path/to/set");
 	}
 
     #[test]
