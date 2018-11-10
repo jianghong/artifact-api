@@ -11,7 +11,7 @@ const CARD_SET_REQUEST_URL: &str =  "https://playartifact.com/cardset/";
 pub const BASE_SET_ID: &str = "00";
 pub const CALL_TO_ARMS_SET_ID: &str = "01";
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardSetRequest {
 	cdn_root: String,
 	url: String,
@@ -48,38 +48,38 @@ impl CardSetRequestError {
 	}
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TranslationSet {
 	english: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ImageSet {
 	default: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetInfo {
 	set_id: i32,
 	pack_item_def: i32,
 	name: TranslationSet,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardReference {
 	card_id: i32,
 	ref_type: String,
 	count: Option<i32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Rarity {
 	Common,
 	Uncommon,
 	Rare,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Card {
 	card_id: i32,
 	base_card_id: i32,
@@ -104,39 +104,55 @@ pub struct Card {
 	rarity: Option<Rarity>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardSet {
 	version: i32,
 	set_info: SetInfo,
 	card_list: Vec<Card>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardSetResponse {
 	pub card_set: CardSet,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CardSetApi {}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CardSetApi {
+	cached_set_response: Option<CardSetResponse>,
+}
 
 impl CardSetApi {
 	pub fn new() -> Self {
-		CardSetApi {}
+		CardSetApi {
+			cached_set_response: None
+		}
 	}
 
-	pub fn get_set(self, set_id: &str) -> Result<CardSetResponse, CardSetRequestError> {
+	pub fn get_set(&mut self, set_id: &str) -> Result<CardSetResponse, CardSetRequestError> {
+		if let Some(cached_set_response) = self.cached_set_response.clone() {
+			println!("Found cached set response");
+
+			self.cached_set_response = Some(cached_set_response.clone());
+			return Ok(cached_set_response);
+		}
+
+		println!("Fetching set from server...");
 		self.get_set_request(set_id)
 			.and_then(|card_set_request| reqwest::get(card_set_request.url()).map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
 			.and_then(|mut response| response.json().map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
+			.and_then(|card_set_response: CardSetResponse| {
+				self.cached_set_response = Some(card_set_response.clone());
+				Ok(card_set_response)
+			})
 	}
 
-	fn get_set_request(self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
+	fn get_set_request(&mut self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
 		self.parse_url(set_id)
 			.and_then(|url| reqwest::get(url).map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
 			.and_then(|mut response| response.json().map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
 	}
 
-	fn parse_url(self, set_id: &str) -> Result<reqwest::Url, CardSetRequestError> {
+	fn parse_url(&mut self, set_id: &str) -> Result<reqwest::Url, CardSetRequestError> {
 		reqwest::Url::parse(CARD_SET_REQUEST_URL).map_err(|e| CardSetRequestError::InvalidSetID{kind: e})
 			.and_then(|base_url| base_url.join(set_id).map_err(|e| CardSetRequestError::InvalidSetID{kind: e}))
 	}
