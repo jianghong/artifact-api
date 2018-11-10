@@ -73,7 +73,7 @@ pub struct CardReference {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct CardList {
+pub struct Card {
 	card_id: i32,
 	base_card_id: i32,
 	card_type: String,
@@ -82,15 +82,26 @@ pub struct CardList {
 	mini_image: ImageSet,
 	large_image: ImageSet,
 	ingame_image: ImageSet,
-	hit_points: Option<i32>,
 	references: Vec<CardReference>,
+	attack: Option<i32>,
+	hit_points: Option<i32>,
+	illustrator: Option<String>,
+	gold_cost: Option<i32>,
+	mana_cost: Option<i32>,
+	sub_type: Option<String>,
+	is_green: Option<bool>,
+	is_red: Option<bool>,
+	is_black: Option<bool>,
+	is_blue: Option<bool>,
+	item_def: Option<i32>,
+	rarity: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CardSet {
 	version: i32,
 	set_info: SetInfo,
-	card_list: Vec<CardList>,
+	card_list: Vec<Card>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
