@@ -1,4 +1,5 @@
 extern crate reqwest;
+#[macro_use] extern crate serde_derive;
 
 const CARD_SET_REQUEST_URL: &str =  "https://playartifact.com/cardset/";
 
@@ -11,11 +12,17 @@ pub enum CardSetRequestError {
 	ReqwestError { err: reqwest::Error },
 }
 
-pub fn card_set_request(set_id: &str) -> Result<String, CardSetRequestError> {
+#[derive(Deserialize, Debug)]
+pub struct CardSetRequest {
+	cdn_root: String,
+	url: String,
+	expire_time: i32,
+}
+
+pub fn get_card_set_request(set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
 	parse_url(set_id)
 		.and_then(|url| reqwest::get(url).map_err(|e| CardSetRequestError::ReqwestError{err: e}))
-		.and_then(|mut response| response.text().map_err(|e| CardSetRequestError::ReqwestError{err: e}))
-		.and_then(|body| Ok(body))
+		.and_then(|mut response| response.json().map_err(|e| CardSetRequestError::ReqwestError{err: e}))
 }
 
 fn parse_url(set_id: &str) -> Result<reqwest::Url, CardSetRequestError> {
