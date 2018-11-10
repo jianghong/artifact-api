@@ -19,6 +19,10 @@ impl CardSetApi {
 	}
 
 	pub fn get_set(self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
+		self.get_set_request(set_id)
+	}
+
+	fn get_set_request(self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
 		self.parse_url(set_id)
 			.and_then(|url| reqwest::get(url).map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
 			.and_then(|mut response| response.json().map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
@@ -75,7 +79,7 @@ mod tests {
 	use {CardSetRequest, CardSetApi};
 
 	#[test]
-	fn get_card_set_request_success() {
+	fn card_set_api_get_set_request_success() {
 		let expected_body = CardSetRequest{
 			cdn_root: "cdn/root/path".into(),
 			url: "path/to/card/set".into(),
@@ -92,7 +96,7 @@ mod tests {
 	}
 
 	#[test]
-	fn get_card_set_request_fail() {
+	fn card_set_api_get_set_request_fail() {
 	    let _m = mock("GET", "/01")
 	      .with_status(201)
 	      .with_header("content-type", "text/plain")
@@ -103,6 +107,18 @@ mod tests {
 		assert_eq!(err.to_string(), "missing field `cdn_root` at line 1 column 2");
 	}
 
+    #[test]
+    fn card_set_api_parse_url_parses_url() {
+    	let url = CardSetApi::new().parse_url("00").unwrap();
+        assert_eq!(url.as_str(), "http://127.0.0.1:1234/00");
+    }
+
+    #[test]
+    fn card_set_api_parse_url_returns_proper_err() {
+    	let err = CardSetApi::new().parse_url("//").unwrap_err();
+        assert_eq!(err.to_string(), "empty host");
+    }  	
+
 	#[test]
 	fn card_set_request_url() {
 		let card_set_request = CardSetRequest{
@@ -112,17 +128,5 @@ mod tests {
 		};
 
 		assert_eq!(card_set_request.url(), "https://cdnroot.com/path/to/set");
-	}
-
-    #[test]
-    fn parse_url_parses_url() {
-    	let url = CardSetApi::new().parse_url("00").unwrap();
-        assert_eq!(url.as_str(), "http://127.0.0.1:1234/00");
-    }
-
-    #[test]
-    fn parse_url_returns_proper_err() {
-    	let err = CardSetApi::new().parse_url("//").unwrap_err();
-        assert_eq!(err.to_string(), "empty host");
-    }    
+	}  
 }
