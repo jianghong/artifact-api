@@ -118,15 +118,17 @@ pub struct CardSetResponse {
 	pub card_set: CardSet,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug)]
 pub struct CardSetApi {
 	cached_sets: HashMap<String, CardSetResponse>,
+	client: reqwest::Client,
 }
 
 impl CardSetApi {
 	pub fn new() -> Self {
 		CardSetApi {
 			cached_sets: HashMap::new(),
+			client: reqwest::Client::new(),
 		}
 	}
 
