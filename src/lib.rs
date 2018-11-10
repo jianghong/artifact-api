@@ -73,6 +73,13 @@ pub struct CardReference {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub enum Rarity {
+	Common,
+	Uncommon,
+	Rare,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Card {
 	card_id: i32,
 	base_card_id: i32,
@@ -94,7 +101,7 @@ pub struct Card {
 	is_black: Option<bool>,
 	is_blue: Option<bool>,
 	item_def: Option<i32>,
-	rarity: Option<String>,
+	rarity: Option<Rarity>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
