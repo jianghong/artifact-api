@@ -1,1 +1,1 @@
-# artifact-api-rs
+# artifact-api
