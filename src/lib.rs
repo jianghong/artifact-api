@@ -19,8 +19,8 @@ pub struct CardSetRequest {
 }
 
 impl CardSetRequest {
-	pub fn url(self) -> String {
-		format!("{}{}", self.cdn_root, self.url)
+	pub fn url(self) -> reqwest::Url {
+		reqwest::Url::parse(&self.cdn_root).unwrap().join(&self.url).unwrap()
 	}
 }
 
@@ -50,12 +50,12 @@ impl CardSetRequestError {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TranslationSet {
-	english: String,
+	english: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ImageSet {
-	default: String,
+	default: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -69,7 +69,7 @@ pub struct SetInfo {
 pub struct CardReference {
 	card_id: i32,
 	ref_type: String,
-	count: i32,	
+	count: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -82,7 +82,7 @@ pub struct CardList {
 	mini_image: ImageSet,
 	large_image: ImageSet,
 	ingame_image: ImageSet,
-	hit_points: i32,
+	hit_points: Option<i32>,
 	references: Vec<CardReference>,
 }
 
@@ -94,6 +94,11 @@ pub struct CardSet {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct CardSetResponse {
+	pub card_set: CardSet,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CardSetApi {}
 
 impl CardSetApi {
@@ -101,8 +106,10 @@ impl CardSetApi {
 		CardSetApi {}
 	}
 
-	pub fn get_set(self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
+	pub fn get_set(self, set_id: &str) -> Result<CardSetResponse, CardSetRequestError> {
 		self.get_set_request(set_id)
+			.and_then(|card_set_request| reqwest::get(card_set_request.url()).map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
+			.and_then(|mut response| response.json().map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
 	}
 
 	fn get_set_request(self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
@@ -137,7 +144,7 @@ mod tests {
 	      .with_header("x-api-key", "1234")
 	      .with_body(serde_json::to_string(&expected_body).unwrap())
 	      .create();
-	    let card_set_request = CardSetApi::new().get_set("01").unwrap();
+	    let card_set_request = CardSetApi::new().get_set_request("01").unwrap();
 		assert_eq!(card_set_request, expected_body);
 	}
 
@@ -149,7 +156,7 @@ mod tests {
 	      .with_header("x-api-key", "1234")
 	      .with_body("{}")
 	      .create();
-	    let err = CardSetApi::new().get_set("01").unwrap_err();
+	    let err = CardSetApi::new().get_set_request("01").unwrap_err();
 		assert_eq!(err.to_string(), "missing field `cdn_root` at line 1 column 2");
 	}
 
@@ -173,6 +180,6 @@ mod tests {
 			expire_time: 123,
 		};
 
-		assert_eq!(card_set_request.url(), "https://cdnroot.com/path/to/set");
+		assert_eq!(card_set_request.url().as_str(), "https://cdnroot.com/path/to/set");
 	}  
 }
