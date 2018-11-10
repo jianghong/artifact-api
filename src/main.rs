@@ -1,8 +1,10 @@
 extern crate artifact_api;
+use artifact_api::{CardSetApi, BASE_SET_ID};
 
 
 fn main() {
-	match artifact_api::get_card_set_request(artifact_api::BASE_SET_ID) {
+	let card_set_api = CardSetApi::new();
+	match card_set_api.get_set(BASE_SET_ID) {
 		Ok(response) => println!("{:?}", response),
 		Err(e) => println!("{:?}", e)
 	}
