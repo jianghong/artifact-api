@@ -109,6 +109,59 @@ pub struct Card {
 
 type CardList = Vec<Card>;
 
+trait CardListFilterable {
+	fn items(self) -> CardList;
+	// fn filter_by<T: CardListFilter>(self, &[T]) -> CardList;
+}
+
+impl CardListFilterable for CardList {
+	fn items(self) -> CardList {
+		self.into_iter()
+			.filter(|card| card.card_type == "Item")
+			.collect::<CardList>()
+	}
+
+	// fn filter_by<T: CardListFilter>(self, filters: &[T]) -> CardList {
+	// 	self.into_iter()
+	// 		.filter(|card| {
+	// 			filters.iter().all(|f| {
+	// 				f.predicate(f.value, card)	
+	// 			})
+	// 		})
+	// }
+}
+
+
+enum CardListFilterField {
+	GOLD,
+}
+
+pub struct CardListi32Filter {
+	value: i32,
+	predicate: fn(i32, &Card) -> bool,
+}
+
+pub fn gold_cost_filter(gold_cost: i32, card: &Card) -> bool {
+	match card.gold_cost {
+		Some(card_gold_cost) => gold_cost == card_gold_cost,
+		None => false
+	}
+}
+
+trait CardListFilter {
+	fn value(self) -> i32;
+	fn predicate(self) -> (fn(i32, &Card) -> bool);
+}
+impl CardListFilter for CardListi32Filter {
+	fn value(self) -> i32 {
+		self.value
+	}
+
+	fn predicate(self) -> (fn(i32, &Card) -> bool) {
+		self.predicate
+	}
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardSet {
 	version: i32,
@@ -154,7 +207,7 @@ impl CardSetApi {
 			})
 	}
 
-	pub fn get_sets(&mut self) -> Result<CardList, CardSetRequestError> {
+	pub fn get_cards(&mut self) -> Result<CardList, CardSetRequestError> {
 		let mut card_list: CardList = vec![];
 
 		for set_id in SET_IDS {
@@ -165,6 +218,8 @@ impl CardSetApi {
 		}
 		Ok(card_list)
 	}
+
+	// pub find
 
 	fn get_set_request(&mut self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
 		self.parse_url(set_id)
@@ -183,7 +238,7 @@ mod tests {
 	extern crate mockito;
 	extern crate serde_json;
 	use tests::mockito::mock;
-	use {CardSetRequest, CardSetApi};
+	use {CardSetRequest, CardSetApi, CardListi32Filter, CardListFilterField, gold_cost_filter};
 
 	#[test]
 	fn card_set_api_get_set_request_success() {
@@ -235,5 +290,19 @@ mod tests {
 		};
 
 		assert_eq!(card_set_request.url().as_str(), "https://cdnroot.com/path/to/set");
+	}
+
+	#[test]
+	fn find_items_by_cost() {
+		let gold_cost = CardListi32Filter{
+			value: 3,
+			predicate: gold_cost_filter,
+		};
+		let found_items = CardSetApi::new()
+		 	.get_cards().unwrap()
+		 	.items()
+		 	.filters([gold_cost]);
+		assert_eq!(found_items.len(), 1);
+		assert_eq!(found_items[0].name.english, "Short Sword");
 	}
 }
