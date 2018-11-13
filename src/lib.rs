@@ -12,6 +12,7 @@ const CARD_SET_REQUEST_URL: &str =  "https://playartifact.com/cardset/";
 
 pub const BASE_SET_ID: &str = "00";
 pub const CALL_TO_ARMS_SET_ID: &str = "01";
+pub const SET_IDS: &'static [&'static str] = &[BASE_SET_ID, CALL_TO_ARMS_SET_ID];
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardSetRequest {
@@ -106,11 +107,13 @@ pub struct Card {
 	rarity: Option<Rarity>,
 }
 
+type CardList = Vec<Card>;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CardSet {
 	version: i32,
 	set_info: SetInfo,
-	card_list: Vec<Card>,
+	pub card_list: CardList,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -149,6 +152,18 @@ impl CardSetApi {
 				);
 				Ok(card_set_response)
 			})
+	}
+
+	pub fn get_sets(&mut self) -> Result<CardList, CardSetRequestError> {
+		let mut card_list: CardList = vec![];
+
+		for set_id in SET_IDS {
+			match self.get_set(set_id) {
+				Ok(card_set_response) => card_list.append(&mut card_set_response.card_set.card_list.clone()),
+				Err(e) => return Err(e)
+			}
+		}
+		Ok(card_list)
 	}
 
 	fn get_set_request(&mut self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
@@ -220,5 +235,5 @@ mod tests {
 		};
 
 		assert_eq!(card_set_request.url().as_str(), "https://cdnroot.com/path/to/set");
-	}  
+	}
 }
