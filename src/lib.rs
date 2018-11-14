@@ -56,6 +56,16 @@ pub struct TranslationSet {
 	english: Option<String>,
 }
 
+impl TranslationSet {
+	fn english_val(self) -> String {
+		if let Some(english) = self.english {
+			english
+		} else {
+			"".to_string()
+		}
+	}
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ImageSet {
 	default: Option<String>,
@@ -107,9 +117,17 @@ pub struct Card {
 	rarity: Option<Rarity>,
 }
 
+impl Card {
+	pub fn print_item_info(self) {
+		if let Some(gold) = self.gold_cost {
+			println!("Name: {} / Gold: {}", self.card_name.english_val(), gold);
+		}
+	}
+}
+
 type CardList = Vec<Card>;
 
-trait CardListFilterable {
+pub trait CardListFilterable {
 	fn find_items_by_gold_cost(self, i32) -> CardList;
 }
 
@@ -201,13 +219,14 @@ impl CardSetApi {
 mod tests {
 	extern crate mockito;
 	extern crate serde_json;
+	use tests::mockito::mock;
+
 	use Card;
 	use ImageSet;
 	use CardSetResponse;
 	use CardSet;
 	use SetInfo;
 	use TranslationSet;
-	use tests::mockito::mock;
 	use {BASE_SET_ID, CALL_TO_ARMS_SET_ID, CardSetRequest, CardSetApi, CardList, CardListFilterable};
 
 	#[test]
