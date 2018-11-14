@@ -201,8 +201,14 @@ impl CardSetApi {
 mod tests {
 	extern crate mockito;
 	extern crate serde_json;
+	use Card;
+	use ImageSet;
+	use CardSetResponse;
+	use CardSet;
+	use SetInfo;
+	use TranslationSet;
 	use tests::mockito::mock;
-	use {CardSetRequest, CardSetApi, CardList, CardListFilterable};
+	use {BASE_SET_ID, CALL_TO_ARMS_SET_ID, CardSetRequest, CardSetApi, CardList, CardListFilterable};
 
 	#[test]
 	fn card_set_api_get_set_request_success() {
@@ -258,9 +264,90 @@ mod tests {
 
 	#[test]
 	fn find_items_by_gold_cost() {
-		let mut found_items: CardList = CardSetApi::new()
-		 	.get_cards().unwrap()
-		 	.find_items_by_gold_cost(3);
+		let base_set_cards = CardSetResponse{
+			card_set: CardSet{
+				version: 1,
+				set_info: SetInfo{
+					set_id: 1,
+					pack_item_def: 1,
+					name: TranslationSet{
+						english: Some("Base".into())
+					}					
+				},
+				card_list: vec![
+					Card{
+						card_id: 1,
+						base_card_id: 1,
+						card_type: "Item".to_string(),
+						card_name: TranslationSet{ english: Some("Short Sword".to_string()) },
+						card_text: TranslationSet{ english: Some("+3 attack".to_string()) },
+						mini_image: ImageSet{ default: None },
+						large_image: ImageSet{ default: None },
+						ingame_image: ImageSet{ default: None },
+						references: vec![],
+						attack: None,
+						hit_points: None,
+						illustrator: None,
+						gold_cost: Some(3),
+						mana_cost: None,
+						sub_type: None,
+						is_green: None,
+						is_red: None,
+						is_black: None,
+						is_blue: None,
+						item_def: None,
+						rarity: None,
+					}
+				]
+			}
+		};
+		let call_to_arms_cards = CardSetResponse{
+			card_set: CardSet{
+				version: 1,
+				set_info: SetInfo{
+					set_id: 1,
+					pack_item_def: 1,
+					name: TranslationSet{
+						english: Some("Call to arms".into())
+					}					
+				},
+				card_list: vec![
+					Card{
+						card_id: 1,
+						base_card_id: 1,
+						card_type: "Item".to_string(),
+						card_name: TranslationSet{ english: Some("Broadsword".to_string()) },
+						card_text: TranslationSet{ english: Some("+8 attack".to_string()) },
+						mini_image: ImageSet{ default: None },
+						large_image: ImageSet{ default: None },
+						ingame_image: ImageSet{ default: None },
+						references: vec![],
+						attack: None,
+						hit_points: None,
+						illustrator: None,
+						gold_cost: Some(10),
+						mana_cost: None,
+						sub_type: None,
+						is_green: None,
+						is_red: None,
+						is_black: None,
+						is_blue: None,
+						item_def: None,
+						rarity: None,
+					}
+				]
+			}
+		};		
+		let mut api = CardSetApi::new();
+		api.cached_sets.insert(
+			BASE_SET_ID.into(),
+			base_set_cards.clone()
+		);
+		api.cached_sets.insert(
+			CALL_TO_ARMS_SET_ID.into(),
+			call_to_arms_cards.clone()
+		);		
+		let mut found_items: CardList = api.get_cards().unwrap().find_items_by_gold_cost(3);
 		assert_eq!(found_items.len(), 1);
 		assert_eq!(found_items.pop().unwrap().card_name.english.unwrap(), "Short Sword");
 	}
