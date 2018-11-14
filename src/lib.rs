@@ -128,16 +128,17 @@ impl Card {
 type CardList = Vec<Card>;
 
 pub trait CardListFilterable {
-	fn find_items_by_gold_cost(self, i32) -> CardList;
+	fn find_items_by_gold_cost(self, i32, bool) -> CardList;
 }
 
 impl CardListFilterable for CardList {
-	fn find_items_by_gold_cost(self, gold_cost: i32) -> CardList {
+	fn find_items_by_gold_cost(self, gold_cost: i32, include_hold: bool) -> CardList {
 		self.into_iter()
 			.filter(|card| {
 				if let Some(card_gold_cost) = card.gold_cost {
 					card.card_type == "Item" &&
-					card_gold_cost == gold_cost
+					card_gold_cost == gold_cost ||
+					(include_hold && card_gold_cost == gold_cost -1)
 				} else {
 					return false
 				}
@@ -316,7 +317,30 @@ mod tests {
 						is_blue: None,
 						item_def: None,
 						rarity: None,
-					}
+					},
+					Card{
+						card_id: 1,
+						base_card_id: 1,
+						card_type: "Item".to_string(),
+						card_name: TranslationSet{ english: Some("Long Sword".to_string()) },
+						card_text: TranslationSet{ english: Some("+4 attack".to_string()) },
+						mini_image: ImageSet{ default: None },
+						large_image: ImageSet{ default: None },
+						ingame_image: ImageSet{ default: None },
+						references: vec![],
+						attack: None,
+						hit_points: None,
+						illustrator: None,
+						gold_cost: Some(4),
+						mana_cost: None,
+						sub_type: None,
+						is_green: None,
+						is_red: None,
+						is_black: None,
+						is_blue: None,
+						item_def: None,
+						rarity: None,
+					}					
 				]
 			}
 		};
@@ -366,8 +390,13 @@ mod tests {
 			CALL_TO_ARMS_SET_ID.into(),
 			call_to_arms_cards.clone()
 		);		
-		let mut found_items: CardList = api.get_cards().unwrap().find_items_by_gold_cost(3);
+		let mut found_items: CardList = api.get_cards().unwrap().find_items_by_gold_cost(3, false);
 		assert_eq!(found_items.len(), 1);
-		assert_eq!(found_items.pop().unwrap().card_name.english.unwrap(), "Short Sword");
+		assert_eq!(found_items.pop().unwrap().gold_cost.unwrap(), 3);
+
+		let mut found_items: CardList = api.get_cards().unwrap().find_items_by_gold_cost(4, true);
+		assert_eq!(found_items.len(), 2);
+		assert_eq!(found_items.pop().unwrap().gold_cost.unwrap(), 4);
+		assert_eq!(found_items.pop().unwrap().gold_cost.unwrap(), 3);
 	}
 }
