@@ -127,18 +127,23 @@ impl Card {
 
 type CardList = Vec<Card>;
 
+pub struct FindItemsParams {
+	pub gold_cost: i32,
+	pub include_hold: bool,
+}
+
 pub trait CardListFilterable {
-	fn find_items_by_gold_cost(self, i32, bool) -> CardList;
+	fn find_items(self, &FindItemsParams) -> CardList;
 }
 
 impl CardListFilterable for CardList {
-	fn find_items_by_gold_cost(self, gold_cost: i32, include_hold: bool) -> CardList {
+	fn find_items(self, params: &FindItemsParams) -> CardList {
 		self.into_iter()
 			.filter(|card| {
 				if let Some(card_gold_cost) = card.gold_cost {
 					card.card_type == "Item" &&
-					card_gold_cost == gold_cost ||
-					(include_hold && card_gold_cost == gold_cost -1)
+					card_gold_cost == params.gold_cost ||
+					(params.include_hold && card_gold_cost == params.gold_cost -1)
 				} else {
 					return false
 				}
@@ -220,8 +225,7 @@ impl CardSetApi {
 mod tests {
 	extern crate mockito;
 	extern crate serde_json;
-	use tests::mockito::mock;
-
+	use FindItemsParams;
 	use Card;
 	use ImageSet;
 	use CardSetResponse;
@@ -229,6 +233,9 @@ mod tests {
 	use SetInfo;
 	use TranslationSet;
 	use {BASE_SET_ID, CALL_TO_ARMS_SET_ID, CardSetRequest, CardSetApi, CardList, CardListFilterable};
+
+	use tests::mockito::mock;
+
 
 	#[test]
 	fn card_set_api_get_set_request_success() {
@@ -283,7 +290,7 @@ mod tests {
 	}
 
 	#[test]
-	fn find_items_by_gold_cost() {
+	fn find_items() {
 		let base_set_cards = CardSetResponse{
 			card_set: CardSet{
 				version: 1,
@@ -389,12 +396,20 @@ mod tests {
 		api.cached_sets.insert(
 			CALL_TO_ARMS_SET_ID.into(),
 			call_to_arms_cards.clone()
-		);		
-		let mut found_items: CardList = api.get_cards().unwrap().find_items_by_gold_cost(3, false);
+		);
+		let search_params = FindItemsParams{
+			gold_cost: 3,
+			include_hold: false,
+		};
+		let mut found_items: CardList = api.get_cards().unwrap().find_items(&search_params);
 		assert_eq!(found_items.len(), 1);
 		assert_eq!(found_items.pop().unwrap().gold_cost.unwrap(), 3);
 
-		let mut found_items: CardList = api.get_cards().unwrap().find_items_by_gold_cost(4, true);
+		let search_params = FindItemsParams{
+			gold_cost: 4,
+			include_hold: true,
+		};
+		let mut found_items: CardList = api.get_cards().unwrap().find_items(&search_params);
 		assert_eq!(found_items.len(), 2);
 		assert_eq!(found_items.pop().unwrap().gold_cost.unwrap(), 4);
 		assert_eq!(found_items.pop().unwrap().gold_cost.unwrap(), 3);
