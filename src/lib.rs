@@ -110,55 +110,21 @@ pub struct Card {
 type CardList = Vec<Card>;
 
 trait CardListFilterable {
-	fn items(self) -> CardList;
-	// fn filter_by<T: CardListFilter>(self, &[T]) -> CardList;
+	fn find_items_by_gold_cost(self, i32) -> CardList;
 }
 
 impl CardListFilterable for CardList {
-	fn items(self) -> CardList {
+	fn find_items_by_gold_cost(self, gold_cost: i32) -> CardList {
 		self.into_iter()
-			.filter(|card| card.card_type == "Item")
+			.filter(|card| {
+				if let Some(card_gold_cost) = card.gold_cost {
+					card.card_type == "Item" &&
+					card_gold_cost == gold_cost
+				} else {
+					return false
+				}
+			})
 			.collect::<CardList>()
-	}
-
-	// fn filter_by<T: CardListFilter>(self, filters: &[T]) -> CardList {
-	// 	self.into_iter()
-	// 		.filter(|card| {
-	// 			filters.iter().all(|f| {
-	// 				f.predicate(f.value, card)	
-	// 			})
-	// 		})
-	// }
-}
-
-
-enum CardListFilterField {
-	GOLD,
-}
-
-pub struct CardListi32Filter {
-	value: i32,
-	predicate: fn(i32, &Card) -> bool,
-}
-
-pub fn gold_cost_filter(gold_cost: i32, card: &Card) -> bool {
-	match card.gold_cost {
-		Some(card_gold_cost) => gold_cost == card_gold_cost,
-		None => false
-	}
-}
-
-trait CardListFilter {
-	fn value(self) -> i32;
-	fn predicate(self) -> (fn(i32, &Card) -> bool);
-}
-impl CardListFilter for CardListi32Filter {
-	fn value(self) -> i32 {
-		self.value
-	}
-
-	fn predicate(self) -> (fn(i32, &Card) -> bool) {
-		self.predicate
 	}
 }
 
@@ -219,8 +185,6 @@ impl CardSetApi {
 		Ok(card_list)
 	}
 
-	// pub find
-
 	fn get_set_request(&mut self, set_id: &str) -> Result<CardSetRequest, CardSetRequestError> {
 		self.parse_url(set_id)
 			.and_then(|url| reqwest::get(url).map_err(|e| CardSetRequestError::ReqwestError{kind: e}))
@@ -238,7 +202,7 @@ mod tests {
 	extern crate mockito;
 	extern crate serde_json;
 	use tests::mockito::mock;
-	use {CardSetRequest, CardSetApi, CardListi32Filter, CardListFilterField, gold_cost_filter};
+	use {CardSetRequest, CardSetApi, CardList, CardListFilterable};
 
 	#[test]
 	fn card_set_api_get_set_request_success() {
@@ -293,16 +257,11 @@ mod tests {
 	}
 
 	#[test]
-	fn find_items_by_cost() {
-		let gold_cost = CardListi32Filter{
-			value: 3,
-			predicate: gold_cost_filter,
-		};
-		let found_items = CardSetApi::new()
+	fn find_items_by_gold_cost() {
+		let mut found_items: CardList = CardSetApi::new()
 		 	.get_cards().unwrap()
-		 	.items()
-		 	.filters([gold_cost]);
+		 	.find_items_by_gold_cost(3);
 		assert_eq!(found_items.len(), 1);
-		assert_eq!(found_items[0].name.english, "Short Sword");
+		assert_eq!(found_items.pop().unwrap().card_name.english.unwrap(), "Short Sword");
 	}
 }
